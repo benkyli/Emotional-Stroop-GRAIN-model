@@ -197,9 +197,9 @@ word_response_weights = pnl.MappingProjection(
 # NOTE: Adding emotional layer weights. NOTE: Not sure what the weights correspond to. Will likely need to change size based on task size. 
 emotion_input_weights = pnl.MappingProjection(
     matrix=np.array([
-        [1.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0],
-        [0.0, 0.0, 0.0]
+        [1.0, 0.0, 0.0], # positive
+        [0.0, 1.0, 0.0], # negative
+        [0.0, 0.0, 0.0]  # neutral
     ])
 )
 
@@ -247,7 +247,7 @@ color_response_process_1 = pnl.Pathway(
         color_input_weights,
         colors_hidden_layer,
         color_response_weights,
-        response_layer,
+        response_layer
     ],
     name='COLORS_RESPONSE_PROCESS_1'
 )
@@ -308,6 +308,40 @@ task_word_response_process_2 = pnl.Pathway(
         word_task_weights,
         task_layer])
 
+# NOTE: add emotion pathways
+emotion_response_process_1 = pnl.Pathway(
+    pathway=[
+        emotion_input_layer,
+        emotion_input_weights,
+        emotion_hidden_layer,
+        emotion_response_weights,
+        response_layer # NOTE: there was a comma at the end here, but I removed it. See if model breaks
+    ],
+    name='EMOTION_RESPONSE_PROCESS_1'
+)
+
+emotion_response_process_2 = pnl.Pathway(
+    pathway=[
+        response_layer,
+        response_emotion_weights,
+        emotion_hidden_layer
+    ],
+    name='EMOTION_RESPONSE_PROCESS_2'
+)
+
+task_emotion_response_process_1 = pnl.Pathway(
+    pathway=[
+        task_input_layer,
+        task_input_weights,
+        task_layer,
+        task_emotion_weights,
+        emotion_hidden_layer])
+
+task_emotion_response_process_2 = pnl.Pathway(
+    pathway=[
+        emotion_hidden_layer,
+        emotion_task_weights,
+        task_layer])
 
 # Create Composition --------------------------------------------------------------------------------------------------
 Bidirectional_Stroop = pnl.Composition(
