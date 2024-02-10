@@ -111,7 +111,7 @@ response_layer.set_log_conditions('value')
 
 # Connect mechanisms --------------------------------------------------------------------------------------------------
 # (note that response layer projections are set to all zero first for initialization
-
+# input weights
 color_input_weights = pnl.MappingProjection(
     matrix=np.array([
         [1.0, 0.0, 0.0],
@@ -128,45 +128,69 @@ word_input_weights = pnl.MappingProjection(
     ])
 )
 
-task_input_weights = pnl.MappingProjection(
+# NOTE: added emotion weights
+emotion_input_weights = pnl.MappingProjection(
     matrix=np.array([
-        [1.0, 0.0],
-        [0.0, 1.0]
+        [1.0, 0.0, 0.0], # positive
+        [0.0, 1.0, 0.0], # negative
+        [0.0, 0.0, 0.0]  # neutral
     ])
 )
 
+task_input_weights = pnl.MappingProjection(
+    matrix=np.array([
+        [1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0]
+        [0.0, 0.0, 1.0] # added third emotion layer
+    ])
+)
+
+# task weights
 color_task_weights = pnl.MappingProjection(
     matrix=np.array([
-        [4.0, 0.0],
-        [4.0, 0.0],
-        [4.0, 0.0]
+        [4.0, 0.0, 0.0],
+        [4.0, 0.0, 0.0],
+        [4.0, 0.0, 0.0] # third column is emotion layer
     ])
 )
 
 task_color_weights = pnl.MappingProjection(
     matrix=np.array([
         [4.0, 4.0, 4.0],
-        [0.0, 0.0, 0.0]
+        [0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0] # third layer is emotion layer
     ])
 )
 
 word_task_weights = pnl.MappingProjection(
     matrix=np.array([
-        [0.0, 4.0],
-        [0.0, 4.0],
-        [0.0, 4.0]
+        [0.0, 4.0, 0.0],
+        [0.0, 4.0, 0.0],
+        [0.0, 4.0, 0.0]
     ])
 )
 
 task_word_weights = pnl.MappingProjection(
     matrix=np.array([
         [0.0, 0.0, 0.0],
-        [4.0, 4.0, 4.0]
+        [4.0, 4.0, 4.0],
+        [0.0, 0.0, 0.0]
     ])
 )
 
+emotion_task_weights = pnl.MappingProjection(
+    matrix=np.array([
+        [0.0, 0.0, 4.0],
+        [0.0, 0.0, 4.0],
+        [0.0, 0.0, 4.0]
+        # NOTE: The matrices will likely be 3x3 instead, and the emotion will be the third column and row. It may have values corresponding to word reading and colour reading though. Possibly negative weights for negative valence. 
+    ])
+)
+
+# response weights
 response_color_weights = pnl.MappingProjection(
     matrix=np.array([
+        [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0]
     ])
@@ -174,6 +198,7 @@ response_color_weights = pnl.MappingProjection(
 
 response_word_weights = pnl.MappingProjection(
     matrix=np.array([
+        [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0]
     ])
@@ -194,32 +219,7 @@ word_response_weights = pnl.MappingProjection(
     ])
 )
 
-# NOTE: Adding emotional layer weights. NOTE: Not sure what the weights correspond to. Will likely need to change size based on task size. 
-emotion_input_weights = pnl.MappingProjection(
-    matrix=np.array([
-        [1.0, 0.0, 0.0], # positive
-        [0.0, 1.0, 0.0], # negative
-        [0.0, 0.0, 0.0]  # neutral
-    ])
-)
-
-emotion_task_weights = pnl.MappingProjection(
-    matrix=np.array([
-        [0.0, 4.0],
-        [0.0, 4.0],
-        [0.0, 4.0]
-        # NOTE: The matrices will likely be 3x3 instead, and the emotion will be the third column and row. It may have values corresponding to word reading and colour reading though. Possibly negative weights for negative valence. 
-    ])
-)
-
-task_emotion_weights = pnl.MappingProjection(
-    matrix=np.array([
-        [0.0, 0.0, 0.0],
-        [4.0, 4.0, 4.0]
-        # NOTE: As mentioned above, the weights would be in the third row instead. 
-    ])
-)
-
+# emotion
 emotion_response_weights = pnl.MappingProjection(
     matrix=np.array([
         [2.5, 0.0],
