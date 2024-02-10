@@ -187,10 +187,18 @@ emotion_task_weights = pnl.MappingProjection(
     ])
 )
 
+task_emotion_weights = pnl.MappingProjection(
+    matrix=np.array([
+        [0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0],
+        [4.0, 4.0, 4.0]
+        # NOTE: As mentioned above, the weights would be in the third row instead. 
+    ])
+)
+
 # response weights
 response_color_weights = pnl.MappingProjection(
     matrix=np.array([
-        [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0]
     ])
@@ -199,8 +207,15 @@ response_color_weights = pnl.MappingProjection(
 response_word_weights = pnl.MappingProjection(
     matrix=np.array([
         [0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0]
+    ])
+)
+
+response_emotion_weights = pnl.MappingProjection(
+    matrix=np.array([
         [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0]
+        # NOTE: the word and colour have no return value from the response. Does that make sense for emotion?
     ])
 )
 
@@ -219,28 +234,18 @@ word_response_weights = pnl.MappingProjection(
     ])
 )
 
-# emotion
+# zeroes because emotion doesn't have a corresponding response node; could be for future research
 emotion_response_weights = pnl.MappingProjection(
     matrix=np.array([
-        [2.5, 0.0],
-        [0.0, 2.5],
+        [0.0, 0.0],
+        [0.0, 0.0],
         [0.0, 0.0]
-        # NOTE: again, have to decide what the outcomes here are. Determines shape of matrix
-        # NOTE 2: word reading had higher weights here than colour naming. 
     ])
 )
-
-response_emotion_weights = pnl.MappingProjection(
-    matrix=np.array([
-        [0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0]
-        # NOTE: the word and colour have no return value from the response. Does that make sense for emotion?
-    ])
-)
-
 
 #
 # Create pathways -----------------------------------------------------------------------------------------------------
+# response pathways
 color_response_process_1 = pnl.Pathway(
     pathway=[
         colors_input_layer,
@@ -281,6 +286,29 @@ word_response_process_2 = pnl.Pathway(
     name='WORDS_RESPONSE_PROCESS_2'
 )
 
+# NOTE: shouldn't actually do anything
+emotion_response_process_1 = pnl.Pathway(
+    pathway=[
+        emotion_input_layer,
+        emotion_input_weights,
+        emotion_hidden_layer,
+        emotion_response_weights,
+        response_layer # NOTE: there was a comma at the end here, but I removed it. See if model breaks
+    ],
+    name='EMOTION_RESPONSE_PROCESS_1'
+)
+
+# NOTE: also does nothing. 
+emotion_response_process_2 = pnl.Pathway(
+    pathway=[
+        response_layer,
+        response_emotion_weights,
+        emotion_hidden_layer
+    ],
+    name='EMOTION_RESPONSE_PROCESS_2'
+)
+
+# task pathways
 task_color_response_process_1 = pnl.Pathway(
     pathway=[
         task_input_layer,
@@ -308,27 +336,6 @@ task_word_response_process_2 = pnl.Pathway(
         word_task_weights,
         task_layer])
 
-# NOTE: add emotion pathways
-emotion_response_process_1 = pnl.Pathway(
-    pathway=[
-        emotion_input_layer,
-        emotion_input_weights,
-        emotion_hidden_layer,
-        emotion_response_weights,
-        response_layer # NOTE: there was a comma at the end here, but I removed it. See if model breaks
-    ],
-    name='EMOTION_RESPONSE_PROCESS_1'
-)
-
-emotion_response_process_2 = pnl.Pathway(
-    pathway=[
-        response_layer,
-        response_emotion_weights,
-        emotion_hidden_layer
-    ],
-    name='EMOTION_RESPONSE_PROCESS_2'
-)
-
 task_emotion_response_process_1 = pnl.Pathway(
     pathway=[
         task_input_layer,
@@ -348,12 +355,16 @@ Bidirectional_Stroop = pnl.Composition(
     pathways=[
         color_response_process_1,
         word_response_process_1,
+        emotion_response_process_1,
         task_color_response_process_1,
         task_word_response_process_1,
+        task_emotion_response_process_1,
         color_response_process_2,
         word_response_process_2,
+        emotion_response_process_2,
         task_color_response_process_2,
-        task_word_response_process_2
+        task_word_response_process_2,
+        task_emotion_response_process_2
     ],
     reinitialize_mechanisms_when=pnl.Never(),
     name='Bidirectional Stroop Model'
@@ -361,6 +372,7 @@ Bidirectional_Stroop = pnl.Composition(
 
 input_dict = {colors_input_layer: [0, 0, 0],
               words_input_layer: [0, 0, 0],
+              emotion_input_layer: [0, 0, 0], # added emotion input to input dict. 
               task_input_layer: [0, 1]}
 print("\n\n\n\n")
 print(Bidirectional_Stroop.run(inputs=input_dict))
@@ -387,7 +399,7 @@ terminate_trial = {
 # a blue color input is [1,0] to colors_input_layer and green color is [0,1]
 # a color-naming trial is [1,0] to task_layer and a word-reading trial is [0,1]
 
-
+''' continue here Feb 10'''
 def trial_dict(red_color, green_color, neutral_color, red_word, green_word, neutral_word, CN, WR):
 
     trialdict = {
