@@ -372,8 +372,8 @@ Bidirectional_Stroop = pnl.Composition(
 
 input_dict = {colors_input_layer: [0, 0, 0],
               words_input_layer: [0, 0, 0],
-              emotion_input_layer: [0, 0, 0], # added emotion input to input dict. 
-              task_input_layer: [0, 1]}
+              emotion_input_layer: [0, 0, 0], # NOTE: added emotion input to input dict. 
+              task_input_layer: [0, 1, 0]} # NOTE: added extra emotion task input.
 print("\n\n\n\n")
 print(Bidirectional_Stroop.run(inputs=input_dict))
 
@@ -384,6 +384,7 @@ for node in Bidirectional_Stroop.mechanisms:
 # # LOGGING:
 colors_hidden_layer.set_log_conditions('value')
 words_hidden_layer.set_log_conditions('value')
+emotion_hidden_layer.set_log_conditions('value') # NOTE: added emotion layer logging.
 
 # Create threshold function -------------------------------------------------------------------------------------------
 
@@ -399,20 +400,22 @@ terminate_trial = {
 # a blue color input is [1,0] to colors_input_layer and green color is [0,1]
 # a color-naming trial is [1,0] to task_layer and a word-reading trial is [0,1]
 
-''' continue here Feb 10'''
-def trial_dict(red_color, green_color, neutral_color, red_word, green_word, neutral_word, CN, WR):
-
+def trial_dict(red_color, green_color, neutral_color, red_word, green_word, neutral_word, positive_emotion, negative_emotion, neutral_emotion, CN, WR, EP):
+# CN = colour naming, WR = word reading, EP = emotion processing. 
     trialdict = {
         colors_input_layer: [red_color, green_color, neutral_color],
         words_input_layer: [red_word, green_word, neutral_word],
-        task_input_layer: [CN, WR]
+        emotion_input_layer: [positive_emotion, negative_emotion, neutral_emotion],
+        task_input_layer: [CN, WR, EP]
     }
     return trialdict
 
-
+''' need to update trial parameters: Feb 11'''
 # Define initialization trials separately
-WR_initialize_input = trial_dict(0, 0, 0, 0, 0, 0, 0, 1)
-CN_initialize_input = trial_dict(0, 0, 0, 0, 0, 0, 1, 0)
+# order: red_color, green_color, neutral_color, red_word, green_word, neutral_word, positive_emotion, negative_emotion, neutral_emotion, CN, WR, EP
+WR_initialize_input = trial_dict(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0)
+CN_initialize_input = trial_dict(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0)
+EP_initialize_input = trial_dict(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1)
 
 CN_incongruent_trial_input = trial_dict(1, 0, 0, 0, 1, 0, 1, 0)  # red_color, green color, red_word, green word, CN, WR
 CN_congruent_trial_input = trial_dict(1, 0, 0, 1, 0, 0, 1, 0)  # red_color, green color, red_word, green word, CN, WR
