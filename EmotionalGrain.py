@@ -3,10 +3,24 @@ import argparse
 import numpy as np
 import psyneulink as pnl
 
+import logging
+
 # This implements the model by Cohen, J. D., & Huston, T. A. (1994). Progress in the use of interactive
 # models for understanding attention and performance. In C. Umilta & M. Moscovitch(Eds.),
 # AttentionandperformanceXV(pp.453-456). Cam- bridge, MA: MIT Press.
 # The model aims to capute top-down effects of selective attention and the bottom-up effects of attentional capture.
+
+# '''
+# Setup file logger to stop cluttering the terminal output
+# '''
+# output_logger = logging.getLogger('outputLogger')
+# output_logger.propagate = False
+# output_logger.setLevel(logging.DEBUG)
+# fh = logging.FileHandler(filename='output.log', mode='w')
+# fh.setLevel(logging.DEBUG)
+# formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+# fh.setFormatter(formatter)
+# output_logger.addHandler(fh)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--no-plot', action='store_false', help='Disable plotting', dest='enable_plot')
@@ -140,7 +154,7 @@ emotion_input_weights = pnl.MappingProjection(
 task_input_weights = pnl.MappingProjection(
     matrix=np.array([
         [1.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0]
+        [0.0, 1.0, 0.0],
         [0.0, 0.0, 1.0] # added third emotion layer
     ])
 )
@@ -180,17 +194,17 @@ task_word_weights = pnl.MappingProjection(
 
 emotion_task_weights = pnl.MappingProjection(
     matrix=np.array([
-        [0.0, 0.0, 4.0],
-        [0.0, 0.0, 4.0],
-        [0.0, 0.0, 4.0]
+        [-4.0, -2.0, 4.0],
+        [-4.0, -2.0, 4.0],
+        [0.0, 0.0, 4.0] # in theory, emotion leads to slowing of other processes in terms of rumination
         # NOTE: The matrices will likely be 3x3 instead, and the emotion will be the third column and row. It may have values corresponding to word reading and colour reading though. Possibly negative weights for negative valence. 
     ])
 )
 
 task_emotion_weights = pnl.MappingProjection(
     matrix=np.array([
-        [0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0], # pretty sure altering these doesn't do anything tbh
+        [0.0, 0.0, 0.0], # in theory, word reading is what causes the initial emotion processing
         [4.0, 4.0, 4.0]
         # NOTE: As mentioned above, the weights would be in the third row instead. 
     ])
@@ -237,8 +251,8 @@ word_response_weights = pnl.MappingProjection(
 # zeroes because emotion doesn't have a corresponding response node; could be for future research
 emotion_response_weights = pnl.MappingProjection(
     matrix=np.array([
-        [0.0, 0.0],
-        [0.0, 0.0],
+        [1.5, 0.0],
+        [0.0, 1.5],
         [0.0, 0.0]
     ])
 )
@@ -279,14 +293,14 @@ word_response_process_1 = pnl.Pathway(
 
 word_response_process_2 = pnl.Pathway(
     pathway=[
-        (response_layer, pnl.NodeRole.OUTPUT),
+        (response_layer, pnl.NodeRole.OUTPUT), # this is related to logging the output results... probably
         response_word_weights,
         words_hidden_layer
     ],
     name='WORDS_RESPONSE_PROCESS_2'
 )
 
-# NOTE: shouldn't actually do anything
+# NOTE: emotion layers
 emotion_response_process_1 = pnl.Pathway(
     pathway=[
         emotion_input_layer,
@@ -298,7 +312,7 @@ emotion_response_process_1 = pnl.Pathway(
     name='EMOTION_RESPONSE_PROCESS_1'
 )
 
-# NOTE: also does nothing. 
+# NOTE:
 emotion_response_process_2 = pnl.Pathway(
     pathway=[
         response_layer,
@@ -374,6 +388,8 @@ input_dict = {colors_input_layer: [0, 0, 0],
               words_input_layer: [0, 0, 0],
               emotion_input_layer: [0, 0, 0], # NOTE: added emotion input to input dict. 
               task_input_layer: [0, 1, 0]} # NOTE: added extra emotion task input.
+                # I believe the 1 would indiciate what task is being done. With color first, word second, emotion third
+                # Similarly, I believe that the other inputs layers correspond to the condition (ex: negative, positive, congruent,incongruent)
 print("\n\n\n\n")
 print(Bidirectional_Stroop.run(inputs=input_dict))
 
@@ -410,20 +426,24 @@ def trial_dict(red_color, green_color, neutral_color, red_word, green_word, neut
     }
     return trialdict
 
-''' need to update trial parameters: Feb 11'''
 # Define initialization trials separately
 # order: red_color, green_color, neutral_color, red_word, green_word, neutral_word, positive_emotion, negative_emotion, neutral_emotion, CN, WR, EP
-WR_initialize_input = trial_dict(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0)
 CN_initialize_input = trial_dict(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0)
+WR_initialize_input = trial_dict(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0)
 EP_initialize_input = trial_dict(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1)
 
-CN_incongruent_trial_input = trial_dict(1, 0, 0, 0, 1, 0, 1, 0)  # red_color, green color, red_word, green word, CN, WR
-CN_congruent_trial_input = trial_dict(1, 0, 0, 1, 0, 0, 1, 0)  # red_color, green color, red_word, green word, CN, WR
-CN_control_trial_input = trial_dict(1, 0, 0, 0, 0, 0, 1, 0)  # red_color, green color, red_word, green word, CN, WR
+# red_color, green_color, neutral_color, red_word, green_word, neutral_word, positive_emotion, negative_emotion, neutral_emotion, CN, WR, EP
+CN_congruent_trial_input =   trial_dict(1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0) # red_colour + red_word
+CN_incongruent_trial_input = trial_dict(1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0) # red_colour + green_word
+CN_control_trial_input =     trial_dict(1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0) # red_colour + no word (?)
 
-WR_congruent_trial_input = trial_dict(1, 0, 0, 1, 0, 0, 0, 1)  # red_color, green color, red_word, green word, CN, WR
-WR_incongruent_trial_input = trial_dict(1, 0, 0, 0, 1, 0, 0, 1)  # red_color, green color, red_word, green word, CN, WR
-WR_control_trial_input = trial_dict(0, 0, 0, 1, 0, 0, 0, 1)  # red_color, green color, red_word, green word, CN, WR
+WR_congruent_trial_input =   trial_dict(1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0) # red_color + red_word
+WR_incongruent_trial_input = trial_dict(1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0) # red_colour + green_word
+WR_control_trial_input =     trial_dict(0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0) # no color? + red word 
+
+CN_positive_trial_input = trial_dict(1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0)
+CN_negative_trial_input = trial_dict(1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0)
+CN_neutral_trial_input =  trial_dict(1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0)
 
 Stimulus = [[CN_initialize_input, CN_control_trial_input],
             [CN_initialize_input, CN_incongruent_trial_input],
@@ -432,138 +452,266 @@ Stimulus = [[CN_initialize_input, CN_control_trial_input],
 Stimulus2 = [[WR_initialize_input, WR_control_trial_input],
              [WR_initialize_input, WR_incongruent_trial_input],
              [WR_initialize_input, WR_control_trial_input]]
+             
+Stimulus3 = [
+                [CN_initialize_input, CN_positive_trial_input],
+                [CN_initialize_input, CN_negative_trial_input],
+                [CN_initialize_input, CN_neutral_trial_input]
+            ]
+
+# Create third stimulus? Technically we would only have colour naming trials to begin with. So I guess a third stimulus except it would be a colour naming one with emotional words activated, but not the actual task node.
+    # It would be like the control CN task, but instead the emotional words are used.
 
 conditions = 3
 response_all = []
 response_all2 = []
-
 # Run color naming trials ----------------------------------------------------------------------------------------------
-for cond in range(conditions):
-    response_color_weights = pnl.MappingProjection(
-        matrix=np.array([
-            [0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0]
-        ])
-    )
-    response_word_weights = pnl.MappingProjection(
-        matrix=np.array([
-            [0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0]
-        ])
-    )
+# for cond in range(conditions):
+#     response_color_weights.parameters.matrix.set(
+#         np.array([
+#             [0.0, 0.0, 0.0],
+#             [0.0, 0.0, 0.0]
+#         ]), Bidirectional_Stroop
+#     )
+#     response_word_weights.parameters.matrix.set(
+#         np.array([
+#             [0.0, 0.0, 0.0],
+#             [0.0, 0.0, 0.0]
+#         ]), Bidirectional_Stroop
+#     )
+#     # NOTE: Added response_emotion weights
+#     response_emotion_weights.parameters.matrix.set(
+#         np.array([
+#             [0.0, 0.0, 0.0],
+#             [0.0, 0.0, 0.0]
+#         ]), Bidirectional_Stroop
+#     )
+#     Bidirectional_Stroop.run(inputs=Stimulus[cond][0], num_trials=settle_trials)
 
-    Bidirectional_Stroop.run(inputs=Stimulus[cond][0], num_trials=settle_trials)
-    response_color_weights = pnl.MappingProjection(
-        matrix=np.array([
-            [1.5, 0.0, 0.0],
-            [0.0, 1.5, 0.0]
-        ])
-    )
-    response_word_weights = pnl.MappingProjection(
-        matrix=np.array([
-            [2.5, 0.0, 0.0],
-            [0.0, 2.5, 0.0]
-        ])
-    )
-    Bidirectional_Stroop.run(inputs=Stimulus[cond][1], termination_processing=terminate_trial)
+#     response_color_weights.parameters.matrix.set(
+#         np.array([
+#             [1.5, 0.0, 0.0],
+#             [0.0, 1.5, 0.0]
+#         ]), Bidirectional_Stroop
+#     )
+#     response_word_weights.parameters.matrix.set(
+#         np.array([
+#             [2.5, 0.0, 0.0],
+#             [0.0, 2.5, 0.0]
+#         ]), Bidirectional_Stroop
+#     )
+
+#     # NOTE: Added response_emotion weights
+#     # Technically, the inputs here should be 0 for these standard Stroop trials. So the actual weights don't matter here.
+#     # However, the magnitude of these weights would essentially signify the pathway strength. So it's hard to say for now
+#     response_emotion_weights.parameters.matrix.set(
+#         np.array([
+#             [1.5, 0.0, 0.0],
+#             [0.0, 1.5, 0.0]
+#         ]), Bidirectional_Stroop
+#     )
+
+#     Bidirectional_Stroop.run(inputs=Stimulus[cond][1], termination_processing=terminate_trial)
 
     # Store values from run -----------------------------------------------------------------------------------------------
-    B_S = Bidirectional_Stroop.name
-    r = response_layer.log.nparray_dictionary('value')       # Log response output from special logistic function
-    rr = r[B_S]['value']
-    n_r = rr.shape[0]
-    rrr = rr.reshape(n_r, 2)
-    response_all.append(rrr)  # .shape[0])
-    response_all2.append(rrr.shape[0])
+#     B_S = Bidirectional_Stroop.name
+#     r = response_layer.log.nparray_dictionary('value')       # Log response output from special logistic function
+#     rr = r[B_S]['value']
+#     n_r = rr.shape[0]
+#     rrr = rr.reshape(n_r, 2) # NOTE: I believe this stays the same, since the output should be the same, despite having 3 inputs now. 
+#     response_all.append(rrr)  # .shape[0])
+#     response_all2.append(rrr.shape[0]) # NOTE: I really wish I knew what was happening here. 
+
+#     # Clear log & reset ----------------------------------------------------------------------------------------
+#     response_layer.log.clear_entries()
+#     colors_hidden_layer.log.clear_entries()
+#     words_hidden_layer.log.clear_entries()
+#     emotion_hidden_layer.log.clear_entries() # NOTE: Clear emotion hidden layer logs
+#     task_layer.log.clear_entries()
+#     colors_hidden_layer.reset([[0, 0, 0]]) 
+#     words_hidden_layer.reset([[0, 0, 0]])
+#     emotion_hidden_layer.reset([[0, 0, 0]])
+#     response_layer.reset([[0, 0]])
+#     task_layer.reset([[0, 0, 0]]) # NOTE: task layer reset needs 3 nodes now.
+#     print('response_all: ', response_all)
+#     print('first trials')
+
+# # Run color naming trials ----------------------------------------------------------------------------------------------
+# response_all3 = []
+# response_all4 = []
+# print('made the next responses')
+# for cond in range(conditions):
+#     response_color_weights.parameters.matrix.set(
+#         np.array([
+#             [0.0, 0.0, 0.0],
+#             [0.0, 0.0, 0.0]
+#         ]), Bidirectional_Stroop
+#     )
+#     response_word_weights.parameters.matrix.set(
+#         np.array([
+#             [0.0, 0.0, 0.0],
+#             [0.0, 0.0, 0.0]
+#         ]), Bidirectional_Stroop
+#     )
+#     # NOTE: Added response_emotion weights
+#     response_emotion_weights.parameters.matrix.set(
+#         np.array([
+#             [0.0, 0.0, 0.0],
+#             [0.0, 0.0, 0.0]
+#         ]), Bidirectional_Stroop
+#     )
+#     Bidirectional_Stroop.run(inputs=Stimulus2[cond][0], num_trials=settle_trials)
+
+#     response_color_weights.parameters.matrix.set(
+#         np.array([
+#             [1.5, 0.0, 0.0],
+#             [0.0, 1.5, 0.0]
+#         ]), Bidirectional_Stroop
+#     )
+#     response_word_weights.parameters.matrix.set(
+#         np.array([
+#             [2.5, 0.0, 0.0],
+#             [0.0, 2.5, 0.0]
+#         ]), Bidirectional_Stroop
+#     )
+
+#     # NOTE: Added response_emotion weights
+#     response_emotion_weights.parameters.matrix.set(
+#         np.array([
+#             [1.5, 0.0, 0.0],
+#             [0.0, 1.5, 0.0]
+#         ]), Bidirectional_Stroop
+#     )
+
+#     Bidirectional_Stroop.run(inputs=Stimulus2[cond][1], termination_processing=terminate_trial)
+
+#     # Store values from run -----------------------------------------------------------------------------------------------
+#     r2 = response_layer.log.nparray_dictionary('value')       # Log response output from special logistic function
+#     rr2 = r2[Bidirectional_Stroop.name]['value']
+#     n_r2 = rr2.shape[0]
+#     rrr2 = rr2.reshape(n_r2, 2)
+#     response_all3.append(rrr2)  # .shape[0])
+#     response_all4.append(rrr2.shape[0])
+
+#     # Clear log & reset ----------------------------------------------------------------------------------------
+#     response_layer.log.clear_entries()
+#     colors_hidden_layer.log.clear_entries()
+#     words_hidden_layer.log.clear_entries()
+#     emotion_hidden_layer.log.clear_entries() # NOTE: Clear emotion hidden layer logs
+#     task_layer.log.clear_entries()
+#     colors_hidden_layer.reset([[0, 0, 0]])
+#     words_hidden_layer.reset([[0, 0, 0]])
+#     emotion_hidden_layer.reset([[0, 0, 0]])
+#     response_layer.reset([[0, 0]])
+#     task_layer.reset([[0, 0, 0]]) # NOTE: again, 3 nodes now
+#     print('response_all: ', response_all3)
+#     print('got to second trials')
+
+# Run color naming with emotion ----------------------------------------------------------------------------------------------
+response_all5 = []
+response_all6 = []
+print('made the next responses')
+for cond in range(conditions):
+    response_color_weights.parameters.matrix.set(
+        np.array([
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0]
+        ]), Bidirectional_Stroop
+    )
+    response_word_weights.parameters.matrix.set(
+        np.array([
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0]
+        ]), Bidirectional_Stroop
+    )
+    # NOTE: Added response_emotion weights
+    response_emotion_weights.parameters.matrix.set(
+        np.array([
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0]
+        ]), Bidirectional_Stroop
+    )
+    Bidirectional_Stroop.run(inputs=Stimulus3[cond][0], num_trials=settle_trials)
+
+    response_color_weights.parameters.matrix.set(
+        np.array([
+            [1.5, 0.0, 0.0],
+            [0.0, 1.5, 0.0]
+        ]), Bidirectional_Stroop
+    )
+    response_word_weights.parameters.matrix.set(
+        np.array([
+            [2.5, 0.0, 0.0],
+            [0.0, 2.5, 0.0]
+        ]), Bidirectional_Stroop
+    )
+
+    # NOTE: Added response_emotion weights
+    response_emotion_weights.parameters.matrix.set(
+        np.array([
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0] # assumes that seeing the emotional word has a direct affect on emotional processing
+        ]), Bidirectional_Stroop
+    )
+
+    Bidirectional_Stroop.run(inputs=Stimulus3[cond][1], termination_processing=terminate_trial)
+
+    # Store values from run -----------------------------------------------------------------------------------------------
+    r3 = response_layer.log.nparray_dictionary('value')       # Log response output from special logistic function
+    rr3 = r3[Bidirectional_Stroop.name]['value']
+    n_r3 = rr3.shape[0]
+    rrr3 = rr3.reshape(n_r3, 2)
+    response_all5.append(rrr3)  # .shape[0])
+    response_all6.append(rrr3.shape[0])
 
     # Clear log & reset ----------------------------------------------------------------------------------------
     response_layer.log.clear_entries()
     colors_hidden_layer.log.clear_entries()
     words_hidden_layer.log.clear_entries()
+    emotion_hidden_layer.log.clear_entries() # NOTE: Clear emotion hidden layer logs
     task_layer.log.clear_entries()
     colors_hidden_layer.reset([[0, 0, 0]])
     words_hidden_layer.reset([[0, 0, 0]])
+    emotion_hidden_layer.reset([[0, 0, 0]])
     response_layer.reset([[0, 0]])
-    task_layer.reset([[0, 0]])
-    print('response_all: ', response_all)
-
-# Run color naming trials ----------------------------------------------------------------------------------------------
-response_all3 = []
-response_all4 = []
-for cond in range(conditions):
-    response_color_weights = pnl.MappingProjection(
-        matrix=np.array([
-            [0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0]
-        ])
-    )
-    response_word_weights = pnl.MappingProjection(
-        matrix=np.array([
-            [0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0]
-        ])
-    )
-
-    Bidirectional_Stroop.run(inputs=Stimulus2[cond][0], num_trials=settle_trials)
-    response_color_weights = pnl.MappingProjection(
-        matrix=np.array([
-            [1.5, 0.0, 0.0],
-            [0.0, 1.5, 0.0]
-        ])
-    )
-    response_word_weights = pnl.MappingProjection(
-        matrix=np.array([
-            [2.5, 0.0, 0.0],
-            [0.0, 2.5, 0.0]
-        ])
-    )
-    Bidirectional_Stroop.run(inputs=Stimulus2[cond][1], termination_processing=terminate_trial)
-
-    # Store values from run -----------------------------------------------------------------------------------------------
-    r2 = response_layer.log.nparray_dictionary('value')       # Log response output from special logistic function
-    rr2 = r2[Bidirectional_Stroop.name]['value']
-    n_r2 = rr2.shape[0]
-    rrr2 = rr2.reshape(n_r2, 2)
-    response_all3.append(rrr2)  # .shape[0])
-    response_all4.append(rrr2.shape[0])
-
-    # Clear log & reset ----------------------------------------------------------------------------------------
-    response_layer.log.clear_entries()
-    colors_hidden_layer.log.clear_entries()
-    words_hidden_layer.log.clear_entries()
-    task_layer.log.clear_entries()
-    colors_hidden_layer.reset([[0, 0, 0]])
-    words_hidden_layer.reset([[0, 0, 0]])
-    response_layer.reset([[0, 0]])
-    task_layer.reset([[0, 0]])
-    print('response_all: ', response_all)
+    task_layer.reset([[0, 0, 0]]) # NOTE: again, 3 nodes now
+    print('response_all: ', response_all5)
+    print('got to third trials')
 
 
+print('now we plot')
 if args.enable_plot:
     import matplotlib.pyplot as plt
-
     # Plot results --------------------------------------------------------------------------------------------------------
     # First, plot response layer activity for whole run
-    plt.figure()
-    # color naming plot
-    plt.plot(response_all[0])
-    plt.plot(response_all[1])
-    plt.plot(response_all[2])
-    # word reading plot
-    plt.plot(response_all3[0])
-    plt.plot(response_all3[1])
-    plt.plot(response_all3[2])
-    plt.show(block=not pnl._called_from_pytest)
-    # Second, plot regression plot
-    # regression
-    reg = np.dot(response_all2, 5) + 115
-    reg2 = np.dot(response_all4, 5) + 115
-    plt.figure()
+    # plt.figure()
+    # # color naming plot
+    # plt.plot(response_all[0])
+    # plt.plot(response_all[1])
+    # plt.plot(response_all[2])
+    # # word reading plot
+    # plt.plot(response_all3[0])
+    # plt.plot(response_all3[1])
+    # plt.plot(response_all3[2])
+    # plt.show(block=not pnl._called_from_pytest)
+    # # Second, plot regression plot
+    # # regression
+    # reg = np.dot(response_all2, 5) + 115
+    # reg2 = np.dot(response_all4, 5) + 115
+    # plt.figure()
 
-    plt.plot(reg, '-s')  # plot color naming
-    plt.plot(reg2, '-or')  # plot word reading
-    plt.title('GRAIN MODEL with bidirectional weights')
-    plt.legend(['color naming', 'word reading'])
-    plt.xticks(np.arange(3), ('control', 'incongruent', 'congruent'))
+    # plt.plot(reg, '-s')  # plot color naming
+    # plt.plot(reg2, '-or')  # plot word reading
+    
+    # plt.title('GRAIN MODEL with bidirectional weights')
+    # plt.legend(['color naming', 'word reading'])
+    # plt.xticks(np.arange(3), ('control', 'incongruent', 'congruent'))
+    # plt.ylabel('reaction time in ms')
+    # plt.show(block=not pnl._called_from_pytest)
+
+    # Show emotional graph
+    reg3 = np.dot(response_all6, 5) + 115
+    plt.plot(reg3, '-x')
+    plt.xticks(np.arange(3), ('positive', 'negative', 'neutral'))
     plt.ylabel('reaction time in ms')
     plt.show(block=not pnl._called_from_pytest)
