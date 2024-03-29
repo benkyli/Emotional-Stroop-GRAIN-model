@@ -10,17 +10,6 @@ import logging
 # AttentionandperformanceXV(pp.453-456). Cam- bridge, MA: MIT Press.
 # The model aims to capute top-down effects of selective attention and the bottom-up effects of attentional capture.
 
-# '''
-# Setup file logger to stop cluttering the terminal output
-# '''
-# output_logger = logging.getLogger('outputLogger')
-# output_logger.propagate = False
-# output_logger.setLevel(logging.DEBUG)
-# fh = logging.FileHandler(filename='output.log', mode='w')
-# fh.setLevel(logging.DEBUG)
-# formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-# fh.setFormatter(formatter)
-# output_logger.addHandler(fh)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--no-plot', action='store_false', help='Disable plotting', dest='enable_plot')
@@ -160,6 +149,7 @@ task_input_weights = pnl.MappingProjection(
 )
 
 # task weights
+# NOTE: I believe the 4's here represent the biases of each node. 
 color_task_weights = pnl.MappingProjection(
     matrix=np.array([
         [4.0, 0.0, 0.0],
@@ -194,19 +184,17 @@ task_word_weights = pnl.MappingProjection(
 
 emotion_task_weights = pnl.MappingProjection(
     matrix=np.array([
-        [-4.0, -2.0, 4.0],
-        [-4.0, -2.0, 4.0],
+        [0.0, 0.0, 4.0],
+        [0.0, 0.0, 4.5], # Assume that negative node has a stronger bias
         [0.0, 0.0, 4.0] # in theory, emotion leads to slowing of other processes in terms of rumination
-        # NOTE: The matrices will likely be 3x3 instead, and the emotion will be the third column and row. It may have values corresponding to word reading and colour reading though. Possibly negative weights for negative valence. 
     ])
 )
 
 task_emotion_weights = pnl.MappingProjection(
     matrix=np.array([
-        [0.0, 0.0, 0.0], # pretty sure altering these doesn't do anything tbh
+        [0.0, 0.0, 0.0], 
         [0.0, 0.0, 0.0], # in theory, word reading is what causes the initial emotion processing
         [4.0, 4.0, 4.0]
-        # NOTE: As mentioned above, the weights would be in the third row instead. 
     ])
 )
 
@@ -242,8 +230,8 @@ color_response_weights = pnl.MappingProjection(
 )
 word_response_weights = pnl.MappingProjection(
     matrix=np.array([
-        [2.5, 0.0],
-        [0.0, 2.5],
+        [2.5, 0.0], # this would be red to red. This would be red to green (so rows = own node, columns = task node... duh that's why it's 3x2)
+        [0.0, 2.5], # this would be green to green
         [0.0, 0.0]
     ])
 )
@@ -251,9 +239,11 @@ word_response_weights = pnl.MappingProjection(
 # zeroes because emotion doesn't have a corresponding response node; could be for future research
 emotion_response_weights = pnl.MappingProjection(
     matrix=np.array([
-        [1.5, 0.0],
-        [0.0, 1.5],
-        [0.0, 0.0]
+        [0.5, 2.0],
+        [0.5, 2.5], # this configuration makes it so that. In essence, both positive and negative cause interference from getting the correct colour
+        [0.0, 0.0] # in theory, processing the emotional valence could help get the correct response. But that is hard to say. So I've added values in the first column to represent this potential noise. 
+        # Assumes that negative words cause greater interference
+        # Increasing the magnitudes leads to larger differences. But to say how strong the pathway is is beyond the scope of this project. 
     ])
 )
 
@@ -426,6 +416,8 @@ def trial_dict(red_color, green_color, neutral_color, red_word, green_word, neut
     }
     return trialdict
 
+# NOTE: I realize now that there was no point in creating an emotion processing variable, since we are measuring color naming trials the person will never purposely do emotion processing.
+
 # Define initialization trials separately
 # order: red_color, green_color, neutral_color, red_word, green_word, neutral_word, positive_emotion, negative_emotion, neutral_emotion, CN, WR, EP
 CN_initialize_input = trial_dict(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0)
@@ -454,9 +446,9 @@ Stimulus2 = [[WR_initialize_input, WR_control_trial_input],
              [WR_initialize_input, WR_control_trial_input]]
              
 Stimulus3 = [
-                [CN_initialize_input, CN_positive_trial_input],
                 [CN_initialize_input, CN_negative_trial_input],
-                [CN_initialize_input, CN_neutral_trial_input]
+                [CN_initialize_input, CN_neutral_trial_input],
+                [CN_initialize_input, CN_positive_trial_input]
             ]
 
 # Create third stimulus? Technically we would only have colour naming trials to begin with. So I guess a third stimulus except it would be a colour naming one with emotional words activated, but not the actual task node.
@@ -465,7 +457,7 @@ Stimulus3 = [
 conditions = 3
 response_all = []
 response_all2 = []
-# Run color naming trials ----------------------------------------------------------------------------------------------
+# # Run color naming trials ----------------------------------------------------------------------------------------------
 # for cond in range(conditions):
 #     response_color_weights.parameters.matrix.set(
 #         np.array([
@@ -513,7 +505,7 @@ response_all2 = []
 
 #     Bidirectional_Stroop.run(inputs=Stimulus[cond][1], termination_processing=terminate_trial)
 
-    # Store values from run -----------------------------------------------------------------------------------------------
+#     # Store values from run -----------------------------------------------------------------------------------------------
 #     B_S = Bidirectional_Stroop.name
 #     r = response_layer.log.nparray_dictionary('value')       # Log response output from special logistic function
 #     rr = r[B_S]['value']
@@ -646,11 +638,16 @@ for cond in range(conditions):
         ]), Bidirectional_Stroop
     )
 
+        # [0.5, 2.5],
+        # [0.5, 3.0], # this configuration makes it so that. In essence, both positive and negative cause interference from getting the correct colour
+        # [0.0, 0.0] # in theory, processing the emotional valence could help get the correct response. But that is hard to say. So I've added values in the first column to represent this potential noise. 
+    
     # NOTE: Added response_emotion weights
     response_emotion_weights.parameters.matrix.set(
         np.array([
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0] # assumes that seeing the emotional word has a direct affect on emotional processing
+            [0.5, 0.5, 0.0],
+            [0.5, 0.5, 0.0] # assumes that getting it right or wrong has equal effect on emotional nodes processing. Not as strong as the effect of the emotional words on the response though
+          
         ]), Bidirectional_Stroop
     )
 
@@ -682,8 +679,8 @@ for cond in range(conditions):
 print('now we plot')
 if args.enable_plot:
     import matplotlib.pyplot as plt
-    # Plot results --------------------------------------------------------------------------------------------------------
-    # First, plot response layer activity for whole run
+    # # Plot results --------------------------------------------------------------------------------------------------------
+    # # First, plot response layer activity for whole run
     # plt.figure()
     # # color naming plot
     # plt.plot(response_all[0])
@@ -712,6 +709,14 @@ if args.enable_plot:
     # Show emotional graph
     reg3 = np.dot(response_all6, 5) + 115
     plt.plot(reg3, '-x')
-    plt.xticks(np.arange(3), ('positive', 'negative', 'neutral'))
-    plt.ylabel('reaction time in ms')
+    plt.xlabel('Valence')
+    plt.title('Simulated GRAIN data')
+    plt.xticks(np.arange(3), ('Negative', 'Neutral', 'Positive'))
+    plt.ylabel('Reaction Time (ms)')
     plt.show(block=not pnl._called_from_pytest)
+
+
+    # current thought process
+    # so emotion task should have strong bias on own positive and negative nodes    
+
+    # for response nodes, you could have values, but they'd need to be equal values for red and green since you emotion shouldn't be influencing your ability to see either, but it should influence your processing speed of them. 
