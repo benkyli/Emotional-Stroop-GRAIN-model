@@ -185,7 +185,7 @@ task_word_weights = pnl.MappingProjection(
 emotion_task_weights = pnl.MappingProjection(
     matrix=np.array([
         [0.0, 0.0, 4.0],
-        [0.0, 0.0, 4.5], # Assume that negative node has a stronger bias
+        [0.0, 0.0, 4.0], # Assume that negative node has a stronger bias
         [0.0, 0.0, 4.0] # in theory, emotion leads to slowing of other processes in terms of rumination
     ])
 )
@@ -193,7 +193,7 @@ emotion_task_weights = pnl.MappingProjection(
 task_emotion_weights = pnl.MappingProjection(
     matrix=np.array([
         [0.0, 0.0, 0.0], 
-        [0.0, 0.0, 0.0], # in theory, word reading is what causes the initial emotion processing
+        [0.0, 0.0, 0.0], 
         [4.0, 4.0, 4.0]
     ])
 )
@@ -239,11 +239,17 @@ word_response_weights = pnl.MappingProjection(
 # zeroes because emotion doesn't have a corresponding response node; could be for future research
 emotion_response_weights = pnl.MappingProjection(
     matrix=np.array([
-        [0.5, 2.0],
-        [0.5, 2.5], # this configuration makes it so that. In essence, both positive and negative cause interference from getting the correct colour
-        [0.0, 0.0] # in theory, processing the emotional valence could help get the correct response. But that is hard to say. So I've added values in the first column to represent this potential noise. 
+        # Our hypothesis predicts that both positive and negative cause interference. 
         # Assumes that negative words cause greater interference
-        # Increasing the magnitudes leads to larger differences. But to say how strong the pathway is is beyond the scope of this project. 
+        [0.0, 1.5],
+        [0.0, 2.5], 
+        [0.0, 0.0] 
+        
+        # in theory, processing the emotional valence could help get the correct response. But that is hard to say. I've added values in the first column to represent this potential noise. 
+        # Increasing the magnitudes leads to larger differences. But determining the actual strength of the pathway is beyond the scope of this project. 
+        # [0.5, 1.5],
+        # [0.5, 2.5], 
+        # [0.0, 0.0] 
     ])
 )
 
@@ -645,8 +651,14 @@ for cond in range(conditions):
     # NOTE: Added response_emotion weights
     response_emotion_weights.parameters.matrix.set(
         np.array([
-            [0.5, 0.5, 0.0],
-            [0.5, 0.5, 0.0] # assumes that getting it right or wrong has equal effect on emotional nodes processing. Not as strong as the effect of the emotional words on the response though
+            # assumes that getting it right or wrong has no effect on the input nodes. Since saying either colour shouldn't lead to changes in emotional processing... right? 
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0] 
+
+            # In theory, getting it right or wrong could have a small effect on a person's emotional processing. Like getting it wrong would make them feel worse or overwhelmed. 
+            # assumes that the effect of the response nodes on the input nodes is equal between valence and weaker than the reverse connection. 
+            # [0.5, 0.5, 0.0],
+            # [0.5, 0.5, 0.0] 
           
         ]), Bidirectional_Stroop
     )
