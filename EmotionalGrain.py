@@ -162,7 +162,7 @@ task_color_weights = pnl.MappingProjection(
     matrix=np.array([
         [4.0, 4.0, 4.0],
         [0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0] # third layer is emotion layer
+        [0.0, 0.0, 0.0] # third row is emotion layer
     ])
 )
 
@@ -173,6 +173,7 @@ word_task_weights = pnl.MappingProjection(
         [0.0, 4.0, 0.0]
     ])
 )
+# NOTE: changing column 3 values in here wouldn't make sense since this would mean that the input of colour/word affect emotion processing. In theory, the colour red could affect emotional processing, or reading the word red could too, but this seems to be beyond the scope of the project. for now, we have no interaction going from other systems onto emotion. Only interactions from emotion onto other systems.
 
 task_word_weights = pnl.MappingProjection(
     matrix=np.array([
@@ -182,13 +183,15 @@ task_word_weights = pnl.MappingProjection(
     ])
 )
 
+# rows = nodes (positive, negative, neutral, columns = task (colour, word, emotion)
 emotion_task_weights = pnl.MappingProjection(
     matrix=np.array([
-        [0.0, 0.0, 4.0],
-        [0.0, 0.0, 4.0], # Assume that negative node has a stronger bias
+        [-1.5, -1.5, 4.0],
+        [-2.5, -2.5, 4.0], # Assume that negative node has a stronger bias
         [0.0, 0.0, 4.0] # in theory, emotion leads to slowing of other processes in terms of rumination
-    ])
+    ])                  # this could lead to slower processing of both colour naming and word reading (columns 1 and 2 respectively)
 )
+# adding this inhibitory effect actually slows down the entire system more. So even though neutral doesn't affect the system, it gets slowed down due to slowed colour and word reading. 
 
 task_emotion_weights = pnl.MappingProjection(
     matrix=np.array([
@@ -239,10 +242,12 @@ word_response_weights = pnl.MappingProjection(
 # zeroes because emotion doesn't have a corresponding response node; could be for future research
 emotion_response_weights = pnl.MappingProjection(
     matrix=np.array([
-        # Our hypothesis predicts that both positive and negative cause interference. 
+        # Our hypothesis predicts that both positive and negative cause interference.
+        # seeing an emotionally valenced word would lead to slow down effects. In this case, we assume it inhibits other pathways 
         # Assumes that negative words cause greater interference
-        [0.0, 1.5],
-        [0.0, 2.5], 
+        # rows = positive, negative, neutral, columns = red, green
+        [-1.5, -1.5],
+        [-2.5, -2.5], 
         [0.0, 0.0] 
         
         # in theory, processing the emotional valence could help get the correct response. But that is hard to say. I've added values in the first column to represent this potential noise. 
@@ -726,9 +731,3 @@ if args.enable_plot:
     plt.xticks(np.arange(3), ('Negative', 'Neutral', 'Positive'))
     plt.ylabel('Reaction Time (ms)')
     plt.show(block=not pnl._called_from_pytest)
-
-
-    # current thought process
-    # so emotion task should have strong bias on own positive and negative nodes    
-
-    # for response nodes, you could have values, but they'd need to be equal values for red and green since you emotion shouldn't be influencing your ability to see either, but it should influence your processing speed of them. 
