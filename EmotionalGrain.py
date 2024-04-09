@@ -610,7 +610,7 @@ response_all2 = []
 #     print('response_all: ', response_all3)
 #     print('got to second trials')
 
-# Run color naming with emotion ----------------------------------------------------------------------------------------------
+# Run color naming with emotion  of a high ruminator ----------------------------------------------------------------------------------------------
 response_all5 = []
 response_all6 = []
 print('made the next responses')
@@ -692,6 +692,101 @@ for cond in range(conditions):
     print('response_all: ', response_all5)
     print('got to third trials')
 
+############################################################################################
+# Run color naming with emotion of a low ruminator ----------------------------------------------------------------------------------------------
+response_all7 = []
+response_all8 = []
+print('made the next responses')
+for cond in range(conditions):
+    response_color_weights.parameters.matrix.set(
+        np.array([
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0]
+        ]), Bidirectional_Stroop
+    )
+    response_word_weights.parameters.matrix.set(
+        np.array([
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0]
+        ]), Bidirectional_Stroop
+    )
+    # NOTE: Added response_emotion weights
+    response_emotion_weights.parameters.matrix.set(
+        np.array([
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0]
+        ]), Bidirectional_Stroop
+    )
+    Bidirectional_Stroop.run(inputs=Stimulus3[cond][0], num_trials=settle_trials)
+
+    response_color_weights.parameters.matrix.set(
+        np.array([
+            [1.5, 0.0, 0.0],
+            [0.0, 1.5, 0.0]
+        ]), Bidirectional_Stroop
+    )
+    response_word_weights.parameters.matrix.set(
+        np.array([
+            [2.5, 0.0, 0.0],
+            [0.0, 2.5, 0.0]
+        ]), Bidirectional_Stroop
+    )
+
+        # [0.5, 2.5],
+        # [0.5, 3.0], # this configuration makes it so that. In essence, both positive and negative cause interference from getting the correct colour
+        # [0.0, 0.0] # in theory, processing the emotional valence could help get the correct response. But that is hard to say. So I've added values in the first column to represent this potential noise. 
+    
+    # NOTE: Added response_emotion weights
+    response_emotion_weights.parameters.matrix.set(
+        np.array([
+            # assumes that getting it right or wrong has no effect on the input nodes. Since saying either colour shouldn't lead to changes in emotional processing... right? 
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0] 
+
+            # In theory, getting it right or wrong could have a small effect on a person's emotional processing. Like getting it wrong would make them feel worse or overwhelmed. 
+            # assumes that the effect of the response nodes on the input nodes is equal between valence and weaker than the reverse connection. 
+            # [0.5, 0.5, 0.0],
+            # [0.5, 0.5, 0.0] 
+          
+        ]), Bidirectional_Stroop
+    )
+
+    # NOTE: change the input node effects too
+    emotion_response_weights.parameters.matrix.set(
+        np.array([
+            [-0.25, -0.25],
+            [-0.5, -0.5], # remove the interference caused by emotion
+            [0.0, 0.0] 
+        ]), Bidirectional_Stroop
+    )
+    
+
+    Bidirectional_Stroop.run(inputs=Stimulus3[cond][1], termination_processing=terminate_trial)
+
+    # Store values from run -----------------------------------------------------------------------------------------------
+    r4 = response_layer.log.nparray_dictionary('value')       # Log response output from special logistic function
+    rr4 = r4[Bidirectional_Stroop.name]['value']
+    n_r4 = rr4.shape[0]
+    rrr4 = rr4.reshape(n_r4, 2)
+    response_all7.append(rrr4)  # .shape[0])
+    response_all8.append(rrr4.shape[0])
+
+    # Clear log & reset ----------------------------------------------------------------------------------------
+    response_layer.log.clear_entries()
+    colors_hidden_layer.log.clear_entries()
+    words_hidden_layer.log.clear_entries()
+    emotion_hidden_layer.log.clear_entries() # NOTE: Clear emotion hidden layer logs
+    task_layer.log.clear_entries()
+    colors_hidden_layer.reset([[0, 0, 0]])
+    words_hidden_layer.reset([[0, 0, 0]])
+    emotion_hidden_layer.reset([[0, 0, 0]])
+    response_layer.reset([[0, 0]])
+    task_layer.reset([[0, 0, 0]]) # NOTE: again, 3 nodes now
+    print('response_all: ', response_all7)
+    print('got to fourth trials')
+
+
+
 
 print('now we plot')
 if args.enable_plot:
@@ -726,6 +821,15 @@ if args.enable_plot:
     # Show emotional graph
     reg3 = np.dot(response_all6, 5) + 115
     plt.plot(reg3, '-x')
+    plt.xlabel('Valence')
+    plt.title('Simulated GRAIN data')
+    plt.xticks(np.arange(3), ('Negative', 'Neutral', 'Positive'))
+    plt.ylabel('Reaction Time (ms)')
+    plt.show(block=not pnl._called_from_pytest)
+
+    # show other emotion graph of a low ruminator
+    reg4 = np.dot(response_all8, 5) + 115
+    plt.plot(reg4, '-x')
     plt.xlabel('Valence')
     plt.title('Simulated GRAIN data')
     plt.xticks(np.arange(3), ('Negative', 'Neutral', 'Positive'))
