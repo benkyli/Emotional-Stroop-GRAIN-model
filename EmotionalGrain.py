@@ -186,8 +186,8 @@ task_word_weights = pnl.MappingProjection(
 # rows = nodes (positive, negative, neutral, columns = task (colour, word, emotion)
 emotion_task_weights = pnl.MappingProjection(
     matrix=np.array([
-        [-1.5, -1.5, 4.0],
-        [-2.5, -2.5, 4.0], # Assume that negative node has a stronger bias
+        [0.0, 0.0, 4.0],
+        [0.0, 0.0, 4.0], # Assume that negative node has a stronger bias
         [0.0, 0.0, 4.0] # in theory, emotion leads to slowing of other processes in terms of rumination
     ])                  # this could lead to slower processing of both colour naming and word reading (columns 1 and 2 respectively)
 )
