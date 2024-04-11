@@ -822,16 +822,16 @@ if args.enable_plot:
     reg3 = np.dot(response_all6, 5) + 115
     plt.plot(reg3, '-x')
     plt.xlabel('Valence')
-    plt.title('Simulated GRAIN data')
+    plt.title('Simulated GRAIN Data of a High Ruminator')
     plt.xticks(np.arange(3), ('Negative', 'Neutral', 'Positive'))
-    plt.ylabel('Reaction Time (ms)')
+    plt.ylabel('Average Reaction Time (ms)')
     plt.show(block=not pnl._called_from_pytest)
 
     # show other emotion graph of a low ruminator
     reg4 = np.dot(response_all8, 5) + 115
     plt.plot(reg4, '-x')
     plt.xlabel('Valence')
-    plt.title('Simulated GRAIN data')
+    plt.title('Simulated GRAIN Data of a Low Ruminator')
     plt.xticks(np.arange(3), ('Negative', 'Neutral', 'Positive'))
-    plt.ylabel('Reaction Time (ms)')
+    plt.ylabel('Average Reaction Time (ms)')
     plt.show(block=not pnl._called_from_pytest)
